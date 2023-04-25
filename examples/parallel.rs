@@ -9,9 +9,8 @@ use std::sync::{Mutex};
 use std::cell::RefCell;
 
 const COUNT_OF_CLUSTERS:usize = 55;
-const COUNT_OF_ITERATIONS:u8 = 100;
 const MATRIX: Matrix = Matrix { x: 10.0, y: 10.0 };
-const NUM_OF_CPU_CORES: &str = "4";
+const NUM_OF_CPU_CORES: &str = "1";
 const DRAW_CENTRAOIDS: bool = false; 
 
 struct Matrix {
@@ -60,6 +59,12 @@ impl AddAssign<Point> for Point {
   }
 }
 
+impl PartialEq<Point> for Point {
+  fn eq(&self, other: &Point) -> bool {
+    self.x == other.x && self.y == other.y
+  }
+}
+
 fn read_points() -> Vec<Point> {
   let file = File::open("inputs/points.txt").unwrap();
   let reader = BufReader::new(file);
@@ -94,7 +99,7 @@ fn generate_colors(count_of_clusters: usize) -> Vec<RGBColor> {
   colors
 }
 
-fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Point>, Vec<Vec<Point>>) {
+fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Vec<Point>>) {
   let mut rng = thread_rng();
 
   // Init some random Points of centroids
@@ -106,10 +111,10 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
     .collect::<Vec<Point>>();
 
   let mut clusters_glob: Vec<Vec<Point>> = vec![];
+  let mut centroids_glob: Vec<Point> = vec![];
 
-  for _ in 0..iterations {    
-    let _clusters = RefCell::new(vec![Vec::new(); cluster_count]);
-    let _clusters_mutex = Mutex::new(_clusters);
+  loop {    
+    let _clusters_mutex = Mutex::new(RefCell::new(vec![Vec::new(); cluster_count]));
 
     points.par_iter().for_each(|point| {
       let mut min_distance = std::f64::INFINITY;
@@ -132,7 +137,7 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
 
     // Insert cluster to global variable
     let clusters = _clusters_mutex.lock().unwrap();
-    clusters_glob = clusters.borrow_mut().to_vec();
+    //clusters_glob = clusters.borrow_mut().to_vec();
 
     // Calculate centroids for each cluster by SUM(clusters) / COUNT(clusters)
     for (i, cluster) in clusters.borrow_mut().iter().enumerate() {
@@ -142,6 +147,12 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
 
       centroids[i] = centroid;
     }
+
+    if centroids_glob == centroids {
+      break;
+    }
+
+    centroids_glob = centroids.clone();
   }
 
   (centroids, clusters_glob)
@@ -153,7 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let points = read_points();
 
   let k_means_calculate_start = Instant::now();
-  let (centroids, clusters) = k_means(&points, COUNT_OF_CLUSTERS, COUNT_OF_ITERATIONS);
+  let (centroids, clusters) = k_means(&points, COUNT_OF_CLUSTERS);
   let k_means_calculate_end = Instant::now();
 
   // Create plot
