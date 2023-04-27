@@ -99,7 +99,7 @@ fn generate_colors(count_of_clusters: usize) -> Vec<RGBColor> {
   colors
 }
 
-fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Vec<Point>>) {
+fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
   let mut rng = thread_rng();
 
   // Init some random Points of centroids
@@ -110,7 +110,7 @@ fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Vec<Po
     })
     .collect::<Vec<Point>>();
 
-  let mut clusters_glob: Vec<Vec<Point>> = vec![];
+  let mut clusters_glob: Vec<Arc<RwLock<Vec<Point>>>> = vec![];
   let mut centroids_glob: Vec<Point> = vec![];
 
   loop {    
@@ -123,12 +123,12 @@ fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Vec<Po
   
       // Check all centroids and calculate which is closest
       for (i, centroid) in centroids.iter().enumerate() {
-          let distance = point.distance(&centroid);
-  
-          if distance < min_distance {
-              min_distance = distance;
-              closest_centroid = i;
-          }
+        let distance = point.distance(&centroid);
+
+        if distance < min_distance {
+          min_distance = distance;
+          closest_centroid = i;
+        }
       }
   
       // Push new value to the appropriate cluster
@@ -136,10 +136,6 @@ fn k_means(points: &Vec<Point>, cluster_count: usize) -> (Vec<Point>, Vec<Vec<Po
       let mut write_guard = cluster.write().unwrap();
       write_guard.push(point.clone());
     });
-
-    // Insert cluster to global variable
-    //let clusters = _clusters_mutex.lock().unwrap();
-    //clusters_glob = clusters.borrow_mut().to_vec();
 
     // Calculate centroids for each cluster by SUM(clusters) / COUNT(clusters)
     for (i, cluster_lock) in cluster_locks.iter().enumerate() {
@@ -193,8 +189,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let colors = generate_colors(COUNT_OF_CLUSTERS);
 
-  for (index, cluster) in clusters.iter().enumerate() {
+  for (index, cluster_lock) in clusters.iter().enumerate() {
     let color = colors[index];
+    let cluster = cluster_lock.read().unwrap();
 
     let cluster_to_draw: Vec<_> = cluster.clone()
       .into_par_iter()
