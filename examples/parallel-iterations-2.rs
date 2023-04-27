@@ -5,8 +5,7 @@ use std::io::{BufRead, BufReader};
 use plotters::prelude::*;
 use rayon::{current_num_threads, prelude::*};
 use std::time::Instant;
-use std::sync::{Mutex, Arc, RwLock};
-use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 
 const COUNT_OF_CLUSTERS:usize = 50;
 const COUNT_OF_ITERATIONS:u8 = 100;
@@ -94,7 +93,7 @@ fn generate_colors(count_of_clusters: usize) -> Vec<RGBColor> {
   colors
 }
 
-fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Point>, Vec<Vec<Point>>) {
+fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
   let mut rng = thread_rng();
 
   // Init some random Points of centroids
@@ -105,7 +104,7 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
     })
     .collect::<Vec<Point>>();
 
-  let mut clusters_glob: Vec<Vec<Point>> = vec![];
+  let mut clusters_glob: Vec<Arc<RwLock<Vec<Point>>>> = vec![];
 
   for _ in 0..iterations {    
     let cluster_locks: Vec<Arc<RwLock<Vec<Point>>>> =
@@ -131,9 +130,7 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
       write_guard.push(point.clone());
     });
 
-    // Insert cluster to global variable
-    //let clusters = _clusters_mutex.lock().unwrap();
-    //clusters_glob = clusters.borrow_mut().to_vec();
+    clusters_glob = cluster_locks.clone();
 
     // Calculate centroids for each cluster by SUM(clusters) / COUNT(clusters)
     for (i, cluster_lock) in cluster_locks.iter().enumerate() {
@@ -181,8 +178,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let colors = generate_colors(COUNT_OF_CLUSTERS);
 
-  for (index, cluster) in clusters.iter().enumerate() {
+  for (index, cluster_lock) in clusters.iter().enumerate() {
     let color = colors[index];
+    let cluster = cluster_lock.read().unwrap();
 
     let cluster_to_draw: Vec<_> = cluster.clone()
       .into_par_iter()
