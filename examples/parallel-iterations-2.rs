@@ -116,12 +116,12 @@ fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Po
   
       // Check all centroids and calculate which is closest
       for (i, centroid) in centroids.iter().enumerate() {
-          let distance = point.distance(&centroid);
-  
-          if distance < min_distance {
-              min_distance = distance;
-              closest_centroid = i;
-          }
+        let distance = point.distance(&centroid);
+
+        if distance < min_distance {
+          min_distance = distance;
+          closest_centroid = i;
+        }
       }
   
       // Push new value to the appropriate cluster
