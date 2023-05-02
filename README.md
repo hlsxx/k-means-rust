@@ -23,6 +23,3 @@ cargon run --example parallel-iterations-2
 The program will generate a plot and store it in the "outputs" folder.
 
 ![Example plot](https://github.com/Holes70/k-means-rust/blob/master/outputs/k-means.png)
-
-## 📝 License
-This project is MIT licensed.
