@@ -1,12 +1,13 @@
+use std::ops::{Div, Add, AddAssign};
+
 #[derive(Debug, Copy, Clone)]
-struct Point {
-  x: f64,
-  y: f64,
+pub struct Point {
+  pub x: f64,
+  pub y: f64,
 }
 
 impl Point {
-  fn distance(&self, other: &Point) -> f64 {
-    // sqrt((x2 - x1)^2 + (y2 - y1)^2)
+  pub fn distance(&self, other: &Point) -> f64 {
     ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
   }
 }

@@ -2,15 +2,12 @@ mod helper;
 mod point;
 
 use helper::read_points;
+use point::Point;
 
-use rand::{thread_rng, Rng};
-use std::ops::{Div, Add, AddAssign};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use plotters::prelude::*;
-use rayon::{current_num_threads, prelude::*};
 use std::time::Instant;
 use std::sync::{Arc, RwLock};
+use rand::{thread_rng, Rng};
+use rayon::{current_num_threads, prelude::*};
 
 const COUNT_OF_CLUSTERS:usize = 50;
 const COUNT_OF_ITERATIONS:u8 = 100;
@@ -23,31 +20,19 @@ struct Matrix {
   y: f64
 }
 
-fn generate_colors(count_of_clusters: usize) -> Vec<RGBColor> {
-  let mut colors = vec![];
+fn k_means(points: &Vec<Point>) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
   let mut rng = thread_rng();
 
-  for _i in 0..count_of_clusters {
-    colors.push(RGBColor(rng.gen_range(0..255), rng.gen_range(0..255), rng.gen_range(0..255)));
-  }
-  
-  colors
-}
-
-fn k_means(points: &Vec<Point>, cluster_count: usize, iterations: u8) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
-  let mut rng = thread_rng();
-
-  // Init some random Points of centroids
-  let mut centroids: Vec<Point> = (0..cluster_count)
+  let mut centroids: Vec<Point> = (0..COUNT_OF_CLUSTERS)
     .map(|_| Point {
-      x: rng.gen_range(0.0..MATRIX.x),
-      y: rng.gen_range(0.0..MATRIX.y),
+      x: rng.gen_range(0.0..10.0),
+      y: rng.gen_range(0.0..10.0),
     })
     .collect::<Vec<Point>>();
 
   let mut clusters_glob: Vec<Arc<RwLock<Vec<Point>>>> = vec![];
 
-  for _ in 0..iterations {    
+  for _ in 0..COUNT_OF_ITERATIONS {    
     let cluster_locks: Vec<Arc<RwLock<Vec<Point>>>> =
       centroids.iter().map(|_| Arc::new(RwLock::new(Vec::new()))).collect();
 
@@ -94,47 +79,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let points = read_points();
 
   let k_means_calculate_start = Instant::now();
-  let (centroids, clusters) = k_means(&points, COUNT_OF_CLUSTERS, COUNT_OF_ITERATIONS);
+  let (centroids, clusters) = k_means(&points);
   let k_means_calculate_end = Instant::now();
 
-  // Create plot
-  let root = BitMapBackend::new("outputs/k-means.png", (800, 600))
-    .into_drawing_area();
-
-  root.fill(&WHITE)?;
-
-  // Set margin and X, Y width
-  let mut chart = ChartBuilder::on(&root)
-    .margin(10)
-    .build_cartesian_2d(0.0..MATRIX.x, 0.0..MATRIX.y)?;
-
-  if DRAW_CENTRAOIDS {
-    let centroid_circles: Vec<_> = centroids
-      .into_iter()
-      .map(|p| Circle::new((p.x, p.y), 2, Into::<RGBColor>::into(RED).filled()))
-      .collect();
-
-    chart.draw_series(centroid_circles)?;
-  }
-
-  let colors = generate_colors(COUNT_OF_CLUSTERS);
-
-  for (index, cluster_lock) in clusters.iter().enumerate() {
-    let color = colors[index];
-    let cluster = cluster_lock.read().unwrap();
-
-    let cluster_to_draw: Vec<_> = cluster.clone()
-      .into_par_iter()
-      .map(|p| Circle::new((p.x, p.y), 1, Into::<RGBColor>::into(color).filled()))
-      .collect();
-
-    chart.draw_series(cluster_to_draw)?;
-  }
 
   println!("K-means time consumed: {:?}", k_means_calculate_end - k_means_calculate_start);
   println!("CPU cores used: {}", current_num_threads());
-  
-  root.present()?;
 
   Ok(())
 }
