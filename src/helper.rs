@@ -1,3 +1,8 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
+use crate::point::Point;
+
 pub fn read_points() -> Vec<Point> {
   let file = File::open("inputs/points.txt").unwrap();
   let reader = BufReader::new(file);
