@@ -11,14 +11,8 @@ use rayon::{current_num_threads, prelude::*};
 
 const COUNT_OF_CLUSTERS:usize = 50;
 const COUNT_OF_ITERATIONS:u8 = 100;
-const MATRIX: Matrix = Matrix { x: 10.0, y: 10.0 };
 const NUM_OF_CPU_CORES: &str = "4";
 const DRAW_CENTRAOIDS: bool = false; 
-
-struct Matrix {
-  x: f64,
-  y: f64
-}
 
 fn k_means(points: &Vec<Point>) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
   let mut rng = thread_rng();
@@ -85,6 +79,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   println!("K-means time consumed: {:?}", k_means_calculate_end - k_means_calculate_start);
   println!("CPU cores used: {}", current_num_threads());
+  
+  helper::draw_plot(centroids, clusters, None)?;
 
   Ok(())
 }

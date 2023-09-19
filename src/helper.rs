@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use plotters::prelude::*;
 use rand::{thread_rng, Rng};
-
+use std::sync::{Arc, RwLock};
 use crate::point::Point;
 
 fn generate_point() -> Point {
@@ -59,7 +59,7 @@ fn generate_colors(count_of_clusters: usize) -> Vec<RGBColor> {
   colors
 }
 
-fn draw_plot(draw_centroids: Option<bool>, centroids: Vec<Point>) -> Result<(), Box<dyn std::error::Error>>{
+pub fn draw_plot(centroids: Vec<Point>, clusters: Vec<Arc<RwLock<Vec<Point>>>>, draw_centroids: Option<bool>) -> Result<(), Box<dyn std::error::Error>>{
   let root = BitMapBackend::new("outputs/k-means.png", (800, 600))
     .into_drawing_area();
 
