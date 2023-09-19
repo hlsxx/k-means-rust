@@ -30,7 +30,7 @@ fn k_means(points: &Vec<Point>) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
     })
     .collect::<Vec<Point>>();
 
-  let mut clusters_glob: Vec<Arc<RwLock<Vec<Point>>>> = vec![];
+  let mut clusters = Vec::new();
 
   for _ in 0..COUNT_OF_ITERATIONS {    
     let cluster_locks: Vec<Arc<RwLock<Vec<Point>>>> =
@@ -50,13 +50,14 @@ fn k_means(points: &Vec<Point>) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
         }
       }
   
-      // Push new value to the appropriate cluster
-      let cluster = cluster_locks[closest_centroid].clone();
-      let mut write_guard = cluster.write().unwrap();
-      write_guard.push(point.clone());
+      let cluster = &mut cluster_locks[closest_centroid]
+        .write()
+        .unwrap();
+
+      cluster.push(point.clone());
     });
 
-    clusters_glob = cluster_locks.clone();
+    clusters = cluster_locks.clone();
 
     // Calculate centroids for each cluster by SUM(clusters) / COUNT(clusters)
     for (i, cluster_lock) in cluster_locks.iter().enumerate() {
@@ -70,7 +71,7 @@ fn k_means(points: &Vec<Point>) -> (Vec<Point>, Vec<Arc<RwLock<Vec<Point>>>>) {
     }
   }
 
-  (centroids, clusters_glob)
+  (centroids, clusters)
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -81,7 +82,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let k_means_calculate_start = Instant::now();
   let (centroids, clusters) = k_means(&points);
   let k_means_calculate_end = Instant::now();
-
 
   println!("K-means time consumed: {:?}", k_means_calculate_end - k_means_calculate_start);
   println!("CPU cores used: {}", current_num_threads());
